@@ -15,3 +15,8 @@ export const getHistory = async (sessionId) => {
   const response = await axios.get(`${API_BASE}/history/${sessionId}`);
   return response.data;
 };
+
+export const deleteHistory = async (sessionId) => {
+  const response = await axios.delete(`${API_BASE}/history/${sessionId}`);
+  return response.data;
+};
