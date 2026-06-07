@@ -6,6 +6,8 @@ import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
 import ChatInput from "./components/ChatInput";
 import ModeSelector from "./components/ModeSelector";
+import Calendar from "./components/Calendar";
+import NotificationManager from "./components/NotificationManager";
 import { sendMessage, getHistory, deleteHistory } from "./services/api";
 
 const getOrCreateSessionId = () => {
@@ -23,6 +25,7 @@ function App() {
   const [mode, setMode]           = useState("general");
   const [sessions, setSessions]   = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // Load sessions list
   const loadSessions = async () => {
@@ -93,6 +96,7 @@ function App() {
   return (
     <div className="flex h-screen w-screen overflow-hidden relative">
       <WaveBackground />
+      <NotificationManager sessionId={sessionId} />
 
       {/* Sidebar */}
       <div style={{ position: 'relative', zIndex: 10 }}>
@@ -125,16 +129,28 @@ function App() {
             </div>
             <ModeSelector currentMode={mode} onModeChange={setMode} />
           </div>
+          <div className="flex items-center gap-2">
+            {/* Tombol Kalender */}
+            <button onClick={() => setShowCalendar(true)}
+              className="text-xs px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+              style={{
+                background: 'rgba(0,255,231,0.1)',
+                border: '1px solid rgba(0,255,231,0.3)',
+                color: 'var(--biolum)'
+              }}>
+              📅 Jadwal
+            </button>
 
-          <button onClick={handleClearChat}
-            className="text-xs px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
-            style={{
-              background: 'rgba(232,131,106,0.1)',
-              border: '1px solid rgba(232,131,106,0.3)',
-              color: '#e8836a'
-            }}>
-            🗑 Hapus Chat
-          </button>
+            <button onClick={handleClearChat}
+              className="text-xs px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+              style={{
+                background: 'rgba(232,131,106,0.1)',
+                border: '1px solid rgba(232,131,106,0.3)',
+                color: '#e8836a'
+              }}>
+              🗑 Hapus Chat
+            </button>
+          </div>
         </header>
 
         {/* Chat Window */}
@@ -163,6 +179,11 @@ function App() {
           </p>
         </div>
       </main>
+      <Calendar
+        sessionId={sessionId}
+        isOpen={showCalendar}
+        onClose={() => setShowCalendar(false)}
+      />
     </div>
   );
 }

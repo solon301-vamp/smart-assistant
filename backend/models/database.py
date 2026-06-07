@@ -1,4 +1,3 @@
-#update
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -25,12 +24,25 @@ class ChatHistory(Base):
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
-    id           = Column(Integer, primary_key=True, index=True)
-    session_id   = Column(String, unique=True, index=True)
-    display_name = Column(String, default="User")
+    id             = Column(Integer, primary_key=True, index=True)
+    session_id     = Column(String, unique=True, index=True)
+    display_name   = Column(String, default="User")
     total_messages = Column(Integer, default=0)
-    created_at   = Column(DateTime, default=datetime.utcnow)
-    last_active  = Column(DateTime, default=datetime.utcnow)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+    last_active    = Column(DateTime, default=datetime.utcnow)
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+    id          = Column(Integer, primary_key=True, index=True)
+    session_id  = Column(String, index=True)
+    title       = Column(String)
+    description = Column(Text, nullable=True)
+    date        = Column(String)        # format: YYYY-MM-DD
+    time        = Column(String)        # format: HH:MM
+    category    = Column(String, default="umum")   # umum, kuliah, tugas, personal
+    is_done     = Column(Boolean, default=False)
+    notify      = Column(Boolean, default=True)
+    created_at  = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
 
