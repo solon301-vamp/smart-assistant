@@ -1,9 +1,23 @@
+# Private keys
+*.pem
+
+# Windows files
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Backend
+backend/.env
 backend/venv/
 backend/__pycache__/
 backend/*.pyc
-backend/.env
+
+# Frontend
 frontend/node_modules/
 frontend/.env
 frontend/.env.local
-.DS_Store
-Thumbs.db
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
