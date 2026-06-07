@@ -1,4 +1,3 @@
-cat > routes/chat.py << 'ENDOFFILE'
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -104,4 +103,3 @@ async def like_message(request: LikeRequest, db: Session = Depends(get_db)):
     message.liked = request.liked
     db.commit()
     return {"success": True, "liked": request.liked}
-ENDOFFILE
