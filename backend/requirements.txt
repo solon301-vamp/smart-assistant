@@ -1,8 +1,6 @@
-cat > requirements.txt << 'EOF'
 fastapi
-uvicorn[standard]
+uvicorn
 google-generativeai
 python-dotenv
 sqlalchemy
-psycopg[binary]
-EOF
+psycopg2-binary
