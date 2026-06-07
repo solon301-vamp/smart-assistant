@@ -1,3 +1,4 @@
+cat > routes/chat.py << 'ENDOFFILE'
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -19,16 +20,13 @@ class LikeRequest(BaseModel):
     message_id: int
     liked: bool
 
-def parse_schedule_action(text: str, session_id: str, db: Session):
-    """Cek apakah ada action jadwal dalam response Coral"""
+def parse_schedule_action(text, session_id, db):
     try:
         match = re.search(r'\{[^{}]*"action"[^{}]*\}', text)
         if not match:
             return text, None
-
         action_data = json.loads(match.group())
         action = action_data.get("action")
-
         if action == "add_schedule":
             schedule = Schedule(
                 session_id=session_id,
@@ -42,7 +40,6 @@ def parse_schedule_action(text: str, session_id: str, db: Session):
             db.commit()
             clean_text = text.replace(match.group(), "").strip()
             return clean_text + f"\n\n✅ Jadwal **{schedule.title}** berhasil ditambahkan!", "added"
-
         elif action == "get_schedule":
             date = action_data.get("date")
             schedules = db.query(Schedule).filter(
@@ -54,7 +51,6 @@ def parse_schedule_action(text: str, session_id: str, db: Session):
                 return clean_text + f"\n\n📅 Tidak ada jadwal untuk tanggal {date}.", "fetched"
             schedule_list = "\n".join([f"• {s.time} - {s.title}" for s in schedules])
             return clean_text + f"\n\n📅 Jadwal {date}:\n{schedule_list}", "fetched"
-
     except Exception:
         pass
     return text, None
@@ -65,10 +61,12 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     session = db.query(UserSession).filter(UserSession.session_id == session_id).first()
     if not session:
-        session = UserSession(session_id=session_id)
+        session = UserSession(session_id=session_id, total_messages=0)
         db.add(session)
+        db.flush()
+
     session.last_active = datetime.utcnow()
-    session.total_messages += 1
+    session.total_messages = (session.total_messages or 0) + 1
 
     history = db.query(ChatHistory)\
                 .filter(ChatHistory.session_id == session_id)\
@@ -106,3 +104,4 @@ async def like_message(request: LikeRequest, db: Session = Depends(get_db)):
     message.liked = request.liked
     db.commit()
     return {"success": True, "liked": request.liked}
+ENDOFFILE
