@@ -25,6 +25,7 @@ function App() {
   const [mode, setMode]           = useState("general");
   const [sessions, setSessions]   = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [lastAIMessage, setLastAIMessage] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Load sessions list
@@ -64,6 +65,7 @@ function App() {
         role: "assistant", content: data.reply,
         id: data.message_id, liked: false
       }]);
+      setLastAIMessage(data.reply);
       loadSessions();
     } catch {
       setMessages(prev => [...prev, {
@@ -171,7 +173,11 @@ function App() {
             backdropFilter: 'blur(20px)',
             borderTop: '1px solid rgba(74,168,216,0.1)'
           }}>
-          <ChatInput onSend={handleSend} isLoading={isLoading} />
+          <ChatInput
+            onSend={handleSend}
+            isLoading={isLoading}
+            lastAIMessage={lastAIMessage}
+          />
           <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Mode: <span style={{ color: 'var(--biolum)' }}>{mode}</span>
             {' · '}
