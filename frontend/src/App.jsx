@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import WaveBackground from "./components/WaveBackground";
 import Sidebar from "./components/Sidebar";
@@ -8,35 +7,33 @@ import ChatInput from "./components/ChatInput";
 import ModeSelector from "./components/ModeSelector";
 import Calendar from "./components/Calendar";
 import NotificationManager from "./components/NotificationManager";
+import LoginScreen from "./components/LoginScreen";
 import { sendMessage, getHistory, deleteHistory } from "./services/api";
 
-const getOrCreateSessionId = () => {
-  const existing = localStorage.getItem("smart_assistant_session_id");
-  if (existing) return existing;
-  const newId = uuidv4();
-  localStorage.setItem("smart_assistant_session_id", newId);
-  return newId;
-};
-
 function App() {
-  const [sessionId, setSessionId] = useState(getOrCreateSessionId);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('smart_assistant_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [sessionId, setSessionId] = useState(() =>
+    localStorage.getItem("smart_assistant_session_id")
+  );
   const [messages, setMessages]   = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode]           = useState("general");
   const [sessions, setSessions]   = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [lastAIMessage, setLastAIMessage] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
+  const [lastAIMessage, setLastAIMessage] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Load sessions list
   const loadSessions = async () => {
     try {
       const res = await axios.get("/api/sessions");
-      setSessions(res.data);
+      setSessions(res.data.filter(s => s.session_id === sessionId));
     } catch (e) {}
   };
 
-  // Load history untuk session aktif
   const loadHistory = async (sid) => {
     setIsLoadingHistory(true);
     try {
@@ -52,9 +49,24 @@ function App() {
   };
 
   useEffect(() => {
-    loadHistory(sessionId);
-    loadSessions();
+    if (sessionId) {
+      loadHistory(sessionId);
+      loadSessions();
+    }
   }, [sessionId]);
+
+  const handleLoginSuccess = (data) => {
+    setUser(data);
+    setSessionId(data.session_id);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('smart_assistant_session_id');
+    localStorage.removeItem('smart_assistant_user');
+    setUser(null);
+    setSessionId(null);
+    setMessages([]);
+  };
 
   const handleSend = useCallback(async (text) => {
     setMessages(prev => [...prev, { role: "user", content: text }]);
@@ -76,82 +88,98 @@ function App() {
     }
   }, [sessionId, mode]);
 
-  const handleNewChat = (newId) => {
-    setSessionId(newId);
+  const handleNewChat = () => {
     setMessages([]);
-  };
-
-  const handleSelectSession = (sid) => {
-    localStorage.setItem("smart_assistant_session_id", sid);
-    setSessionId(sid);
   };
 
   const handleClearChat = async () => {
     try { await deleteHistory(sessionId); } catch (e) {}
-    const newId = uuidv4();
-    localStorage.setItem("smart_assistant_session_id", newId);
-    setSessionId(newId);
     setMessages([]);
     loadSessions();
   };
+
+  // Belum login → tampilkan login screen
+  if (!user || !sessionId) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden relative">
       <WaveBackground />
       <NotificationManager sessionId={sessionId} />
 
-      {/* Sidebar */}
-      <div style={{ position: 'relative', zIndex: 10 }}>
+      {/* Sidebar - overlay on mobile */}
+      <div className={`fixed md:relative inset-y-0 left-0 z-30 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <Sidebar
           currentSessionId={sessionId}
           onNewChat={handleNewChat}
-          onSelectSession={handleSelectSession}
+          onSelectSession={() => {}}
           sessions={sessions}
+          user={user}
+          onLogout={handleLogout}
+          onClose={() => setSidebarOpen(false)}
         />
       </div>
 
+      {/* Overlay backdrop for mobile */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-20 md:hidden" style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col overflow-hidden" style={{ position: 'relative', zIndex: 10 }}>
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0" style={{ position: 'relative', zIndex: 10 }}>
 
         {/* Header */}
-        <header className="flex-shrink-0 px-6 py-4 flex items-center justify-between"
+        <header className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4"
           style={{
             background: 'rgba(2,12,27,0.6)',
             backdropFilter: 'blur(20px)',
             borderBottom: '1px solid rgba(74,168,216,0.1)'
           }}>
-          <div className="flex items-center gap-4">
-            <div>
-              <h2 className="font-display text-sm" style={{ color: 'var(--sky-dawn)' }}>
-                Coral Assistant
-              </h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Dari kedalaman samudra, untuk kamu 🌊
-              </p>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Mobile menu button */}
+              <button onClick={() => setSidebarOpen(true)}
+                className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(74,168,216,0.1)', color: 'var(--sky-light)' }}>
+                ☰
+              </button>
+              <div className="min-w-0">
+                <h2 className="font-display text-sm truncate" style={{ color: 'var(--sky-dawn)' }}>
+                  Coral Assistant
+                </h2>
+                <p className="text-xs hidden md:block" style={{ color: 'var(--text-muted)' }}>
+                  Dari kedalaman samudra, untuk kamu 🌊
+                </p>
+              </div>
             </div>
-            <ModeSelector currentMode={mode} onModeChange={setMode} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Tombol Kalender */}
-            <button onClick={() => setShowCalendar(true)}
-              className="text-xs px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
-              style={{
-                background: 'rgba(0,255,231,0.1)',
-                border: '1px solid rgba(0,255,231,0.3)',
-                color: 'var(--biolum)'
-              }}>
-              📅 Jadwal
-            </button>
 
-            <button onClick={handleClearChat}
-              className="text-xs px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
-              style={{
-                background: 'rgba(232,131,106,0.1)',
-                border: '1px solid rgba(232,131,106,0.3)',
-                color: '#e8836a'
-              }}>
-              🗑 Hapus Chat
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => setShowCalendar(true)}
+                className="text-xs px-2 md:px-3 py-1.5 rounded-xl transition-all hover:opacity-80 whitespace-nowrap"
+                style={{
+                  background: 'rgba(0,255,231,0.1)',
+                  border: '1px solid rgba(0,255,231,0.3)',
+                  color: 'var(--biolum)'
+                }}>
+                📅 <span className="hidden sm:inline">Jadwal</span>
+              </button>
+              <button onClick={handleClearChat}
+                className="text-xs px-2 md:px-3 py-1.5 rounded-xl transition-all hover:opacity-80 whitespace-nowrap"
+                style={{
+                  background: 'rgba(232,131,106,0.1)',
+                  border: '1px solid rgba(232,131,106,0.3)',
+                  color: '#e8836a'
+                }}>
+                🗑 <span className="hidden sm:inline">Hapus</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Mode Selector - scrollable on mobile */}
+          <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            <ModeSelector currentMode={mode} onModeChange={setMode} />
           </div>
         </header>
 
@@ -167,29 +195,20 @@ function App() {
         )}
 
         {/* Input Area */}
-        <div className="flex-shrink-0 px-6 py-4"
+        <div className="flex-shrink-0 px-3 md:px-6 py-3 md:py-4"
           style={{
             background: 'rgba(2,12,27,0.6)',
             backdropFilter: 'blur(20px)',
             borderTop: '1px solid rgba(74,168,216,0.1)'
           }}>
-          <ChatInput
-            onSend={handleSend}
-            isLoading={isLoading}
-            lastAIMessage={lastAIMessage}
-          />
+          <ChatInput onSend={handleSend} isLoading={isLoading} lastAIMessage={lastAIMessage} />
           <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Mode: <span style={{ color: 'var(--biolum)' }}>{mode}</span>
-            {' · '}
-            <span>Enter kirim · Shift+Enter baris baru</span>
           </p>
         </div>
       </main>
-      <Calendar
-        sessionId={sessionId}
-        isOpen={showCalendar}
-        onClose={() => setShowCalendar(false)}
-      />
+
+      <Calendar sessionId={sessionId} isOpen={showCalendar} onClose={() => setShowCalendar(false)} />
     </div>
   );
 }

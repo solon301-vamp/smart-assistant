@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.chat import router as chat_router
 from routes.history import router as history_router
 from routes.schedule import router as schedule_router
+from routes.auth import router as auth_router
 
 app = FastAPI(title="Smart Assistant API", version="2.0.0")
 
@@ -20,6 +21,7 @@ app.add_middleware(
 app.include_router(chat_router,     prefix="/api", tags=["Chat"])
 app.include_router(history_router,  prefix="/api", tags=["History"])
 app.include_router(schedule_router, prefix="/api", tags=["Schedule"])
+app.include_router(auth_router, prefix="/api", tags=["Auth"])
 
 @app.get("/")
 def root():

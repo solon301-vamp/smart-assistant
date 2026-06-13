@@ -26,7 +26,10 @@ class UserSession(Base):
     __tablename__ = "user_sessions"
     id             = Column(Integer, primary_key=True, index=True)
     session_id     = Column(String, unique=True, index=True)
+    google_id      = Column(String, unique=True, index=True, nullable=True)
+    email          = Column(String, nullable=True)
     display_name   = Column(String, default="User")
+    avatar_url     = Column(String, nullable=True)
     total_messages = Column(Integer, default=0)
     created_at     = Column(DateTime, default=datetime.utcnow)
     last_active    = Column(DateTime, default=datetime.utcnow)
